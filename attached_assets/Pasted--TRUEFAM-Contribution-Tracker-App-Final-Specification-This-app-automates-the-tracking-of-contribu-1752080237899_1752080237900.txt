@@ -1,0 +1,77 @@
+✅ TRUEFAM Contribution Tracker App – Final Specification
+This app automates the tracking of contributions for bereavement campaigns by capturing payment notifications from Zelle, Venmo, and Cash App. It extracts key details—such as sender name, amount, member ID, and date—from both SMS and email notifications and updates a specified Google Sheet in real-time. The app allows users to set custom time frames for monitoring and ensures seamless and secure data integration.
+________________________________________
+📱 SMS Notification Samples (with Memo as Member ID)
+1. Zelle SMS
+Zelle: You received $20.00 from John Doe on 07/25/2025. Memo: 784293. Your available balance is $540.00.
+2. Venmo SMS
+Venmo: Mary Kamau paid you $20.00 – "918245" on 07/25/2025.
+3. Cash App SMS
+Cash App: You received $20.00 from Carlos Diaz on 07/25/2025. Note: 675312.
+________________________________________
+📧 Email Notification Samples (with Memo as Member ID)
+1. Zelle Email
+Subject: You’ve received money from John Doe
+
+Hi Leon,
+
+John Doe has sent you $20.00 with Zelle® on July 25, 2025.
+Memo: 784293
+
+Funds are being deposited into your account ending in 1234.
+
+Thanks,  
+Your Bank
+2. Venmo Email
+Subject: Mary Kamau sent you $20.00
+
+Hi Leon,
+
+Mary Kamau just sent you $20.00 on Venmo.
+Note: 918245
+
+View Transaction → [venmo.com]
+
+Thanks for using Venmo!
+3. Cash App Email
+Subject: Payment Received - $20.00 from Carlos Diaz
+
+Hi Leon,
+
+You’ve received $20.00 from Carlos Diaz on July 25, 2025.
+Cashtag: $carlosd  
+Note: 675312
+
+Log in to Cash App to view full details.
+
+- Cash App Team
+________________________________________
+🧾 Google Sheet Format (Required Output)
+Sender Name	Amount ($)	Member ID (Memo)	Date
+John Doe	20.00	784293	07/25/2025
+Mary Kamau	20.00	918245	07/25/2025
+Carlos Diaz	20.00	675312	07/25/2025
+Linda Okoro	20.00	432789	07/25/2025
+Amina Yusuf	20.00	129873	07/25/2025
+________________________________________
+🛠 Functio2nal Requirements
+Feature	Description
+📱 SMS Access	Must read incoming SMS (with permission) for Zelle, Venmo, Cash App
+📧 Email Access	Connect to Gmail or IMAP mailbox to parse payment confirmation emails
+🧠 Memo Parsing	Extract Member ID from the memo field in the message (critical)
+📄 Data Fields	Parse and export to sheet: Sender Name, Amount, Member ID, Date
+🕓 Schedule Controls	Let user set a start and end datetime for monitoring messages
+🔗 Sheet Integration	Let user paste a Google Sheet URL for output
+⚙️ Input Setup	Allow input of: phone number, email address, Google Sheet link
+📝 Logs & Alerts	Show real-time logs of updates, errors, and status
+🔐 Security	Secure email and sheet connections using OAuth2 / encrypted storage
+________________________________________
+
+👨‍💻 Developer Notes
+•	SMS Parsing: Use Android ContentObserver for real-time listening.
+•	Email Parsing: Use Gmail API or IMAP via JavaMail.
+•	Memo Extraction: Use regex to extract numeric memo field (e.g., \b\d{5,6}\b)
+•	Google Sheets: Use Sheets API with OAuth2; write new rows in append mode.
+•	Avoid Duplicates: Use transaction reference or timestamp to prevent double entries.
+•	User Experience: Include manual override/edit screen for any misparsed entries.
+________________________________________
