@@ -122,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API Config routes
+  // API Config routes (both endpoints for compatibility)
   app.get('/api/configs', async (req, res) => {
     try {
       const configs = await storage.getApiConfigs();
@@ -150,6 +150,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(config);
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Duplicate API Config routes with alternative naming
+  app.get('/api/api-configs', async (req, res) => {
+    try {
+      const configs = await storage.getApiConfigs();
+      res.json(configs);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/api-configs', async (req, res) => {
+    try {
+      const validated = insertApiConfigSchema.parse(req.body);
+      const config = await storage.createApiConfig(validated);
+      res.status(201).json(config);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // System logs (alternative naming)
+  app.get('/api/system-logs', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getSystemLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
   });
 
