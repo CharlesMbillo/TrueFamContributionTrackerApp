@@ -214,6 +214,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WhatsApp webhook endpoints
+  app.get('/api/webhooks/whatsapp', (req, res) => {
+    // WhatsApp webhook verification
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+      console.log('WhatsApp webhook verified');
+      res.status(200).send(challenge);
+    } else {
+      console.log('WhatsApp webhook verification failed');
+      res.status(403).send('Forbidden');
+    }
+  });
+
+  app.post('/api/webhooks/whatsapp', async (req, res) => {
+    try {
+      await webhookHandler.handleWhatsAppWebhook(req.body);
+      res.json({ message: 'WhatsApp webhook processed successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Google Sheets integration
   app.post('/api/sheets/sync', async (req, res) => {
     try {

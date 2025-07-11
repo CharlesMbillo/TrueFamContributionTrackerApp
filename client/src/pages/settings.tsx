@@ -243,6 +243,14 @@ export default function Settings() {
                   </div>
                   <Switch />
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">WhatsApp Business API</p>
+                    <p className="text-sm text-gray-600">WhatsApp payment notifications</p>
+                  </div>
+                  <Switch />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

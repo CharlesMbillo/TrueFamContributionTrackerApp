@@ -1,5 +1,6 @@
 import { SMSParser } from './sms-parser';
 import { EmailParser } from './email-parser';
+import { WhatsAppParser } from './whatsapp-parser';
 import { GoogleSheetsService } from './google-sheets';
 import { storage } from '../storage';
 import { WebSocket } from 'ws';
@@ -123,6 +124,79 @@ export class WebhookHandler {
 
     } catch (error) {
       await this.logMessage('ERROR', 'EMAIL_WEBHOOK', 'Error processing email webhook', { error: error.message });
+      throw error;
+    }
+  }
+
+  async handleWhatsAppWebhook(payload: any): Promise<void> {
+    try {
+      await this.logMessage('INFO', 'WHATSAPP_WEBHOOK', 'Received WhatsApp webhook', payload);
+
+      const messageData = WhatsAppParser.extractMessageFromWebhook(payload);
+      if (!messageData) {
+        await this.logMessage('WARNING', 'WHATSAPP_PARSER', 'No valid message found in WhatsApp webhook', payload);
+        return;
+      }
+
+      const { message, senderPhone } = messageData;
+      const parsed = WhatsAppParser.parseWhatsAppMessage(message, senderPhone);
+      
+      if (!parsed) {
+        await this.logMessage('WARNING', 'WHATSAPP_PARSER', 'Failed to parse WhatsApp message', { message, senderPhone });
+        return;
+      }
+
+      const activeCampaign = await storage.getActiveCampaign();
+      if (!activeCampaign) {
+        await this.logMessage('ERROR', 'WHATSAPP_WEBHOOK', 'No active campaign found');
+        return;
+      }
+
+      const contribution = await storage.createContribution(
+        WhatsAppParser.createContribution(parsed, activeCampaign.id)
+      );
+
+      // Update Google Sheets
+      if (this.googleSheetsService) {
+        const success = await this.googleSheetsService.appendContribution(contribution);
+        if (success) {
+          await storage.updateContribution(contribution.id, { processed: true });
+        }
+      }
+
+      // Send WhatsApp confirmation if we have the API config
+      const whatsappConfig = await storage.getApiConfigByType('WHATSAPP');
+      if (whatsappConfig && whatsappConfig.isActive) {
+        try {
+          const config = JSON.parse(whatsappConfig.config);
+          if (config.accessToken && config.phoneNumberId && parsed.phoneNumber) {
+            await WhatsAppParser.sendConfirmationMessage(
+              parsed.phoneNumber,
+              parsed,
+              config.accessToken,
+              config.phoneNumberId
+            );
+          }
+        } catch (error) {
+          await this.logMessage('WARNING', 'WHATSAPP_WEBHOOK', 'Failed to send confirmation message', { error: error.message });
+        }
+      }
+
+      // Broadcast to WebSocket clients
+      this.broadcastToClients({
+        type: 'NEW_CONTRIBUTION',
+        data: contribution
+      });
+
+      await this.logMessage('INFO', 'WHATSAPP_WEBHOOK', 'Successfully processed WhatsApp contribution', {
+        contributionId: contribution.id,
+        amount: contribution.amount,
+        sender: contribution.senderName,
+        platform: contribution.platform
+      });
+
+    } catch (error) {
+      await this.logMessage('ERROR', 'WHATSAPP_WEBHOOK', 'Error processing WhatsApp webhook', { error: error.message });
       throw error;
     }
   }
