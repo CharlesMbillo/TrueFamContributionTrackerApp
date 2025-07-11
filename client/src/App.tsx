@@ -1,33 +1,19 @@
-import { Route, Switch } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import MobileFrame from "@/components/mobile-frame";
-import Dashboard from "@/pages/dashboard";
-import Transactions from "@/pages/transactions";
-import Settings from "@/pages/settings";
-import Logs from "@/pages/logs";
-import NotFound from "@/pages/not-found";
-import { queryClient } from "@/lib/queryClient";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import NotFound from './pages/NotFound';
 
 function Home() {
-  return <Dashboard />;
+  return <div>Home Page</div>;
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MobileFrame>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/transactions" component={Transactions} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/logs" component={Logs} />
-          <Route component={NotFound} />
-        </Switch>
-      </MobileFrame>
-      <Toaster />
-    </QueryClientProvider>
+    <Router basename={import.meta.env.BASE_URL}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 }
 

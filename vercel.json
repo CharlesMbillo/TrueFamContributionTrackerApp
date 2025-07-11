@@ -20,8 +20,20 @@
       "dest": "client/dist/assets/"
     },
     {
+      "src": "/@vite/(.*)",
+      "dest": "client/dist/@vite/"
+    },
+    {
+      "src": "/",
+      "dest": "client/dist/index.html"
+    },
+    {
+      "src": "/(.*)\.(js|css|png|jpg|svg|ico)",
+      "dest": "client/dist/."
+    },
+    {
       "src": "/(.*)",
-      "dest": "client/dist/"
+      "dest": "client/dist/index.html"
     }
   ]
 }

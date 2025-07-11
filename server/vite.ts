@@ -7,14 +7,13 @@ function serveStatic(app: express.Express) {
   
   // Production: Serve built assets
   if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { index: false }));
     app.get('*', (req, res) => {
-      // Only serve index.html for non-API routes
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(path.resolve(distPath, 'index.html'));
-      } else {
-        res.status(404).end();
-      }
+      // Skip API routes
+      if (req.path.startsWith('/api')) return res.status(404).end();
+      
+      // Serve index.html for all non-API routes
+      res.sendFile(path.resolve(distPath, 'index.html'));
     });
     return;
   }
