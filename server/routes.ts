@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const data = JSON.parse(message);
         console.log('Received WebSocket message:', data);
-      } catch (error) {
+      } catch (error: unknown) { const err = error as Error;
         console.error('Error parsing WebSocket message:', error);
       }
     });
@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'No active campaign found' });
       }
       res.json(campaign);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertCampaignSchema.parse(req.body);
       const campaign = await storage.createCampaign(validated);
       res.status(201).json(campaign);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertCampaignSchema.partial().parse(req.body);
       const campaign = await storage.updateCampaign(id, validated);
       res.json(campaign);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -76,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
       const contributions = await storage.getContributions(campaignId);
       res.json(contributions);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertContributionSchema.parse(req.body);
       const contribution = await storage.createContribution(validated);
       res.status(201).json(contribution);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         week: weekTotal,
         contributors
       });
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -127,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const configs = await storage.getApiConfigs();
       res.json(configs);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertApiConfigSchema.parse(req.body);
       const config = await storage.createApiConfig(validated);
       res.status(201).json(config);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertApiConfigSchema.partial().parse(req.body);
       const config = await storage.updateApiConfig(id, validated);
       res.json(config);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -158,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const configs = await storage.getApiConfigs();
       res.json(configs);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertApiConfigSchema.parse(req.body);
       const config = await storage.createApiConfig(validated);
       res.status(201).json(config);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(400).json({ message: error.message });
     }
   });
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       const logs = await storage.getSystemLogs(limit);
       res.json(logs);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -190,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       const logs = await storage.getSystemLogs(limit);
       res.json(logs);
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await webhookHandler.handleSMSWebhook(req.body);
       res.json({ message: 'SMS webhook processed successfully' });
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await webhookHandler.handleEmailWebhook(req.body);
       res.json({ message: 'Email webhook processed successfully' });
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await webhookHandler.handleWhatsAppWebhook(req.body);
       res.json({ message: 'WhatsApp webhook processed successfully' });
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });
@@ -256,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.updateCampaign(activeCampaign.id, { googleSheetUrl: sheetUrl });
       res.json({ message: 'Google Sheets URL updated successfully' });
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       res.status(500).json({ message: error.message });
     }
   });

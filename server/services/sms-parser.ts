@@ -55,7 +55,7 @@ export class SMSParser {
             platform: platform.charAt(0).toUpperCase() + platform.slice(1),
             rawMessage: message
           };
-        } catch (error) {
+        } catch (error: unknown) { const err = error as Error;
           console.error(`Error parsing ${platform} SMS:`, error);
           return null;
         }

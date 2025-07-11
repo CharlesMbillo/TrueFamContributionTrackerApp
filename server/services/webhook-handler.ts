@@ -26,7 +26,7 @@ export class WebhookHandler {
       try {
         const sheetConfig = JSON.parse(config.config);
         this.googleSheetsService = new GoogleSheetsService(sheetConfig);
-      } catch (error) {
+      } catch (error: unknown) { const err = error as Error;
         console.error('Error initializing Google Sheets:', error);
       }
     }
@@ -74,7 +74,7 @@ export class WebhookHandler {
         sender: contribution.senderName
       });
 
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       await this.logMessage('ERROR', 'SMS_WEBHOOK', 'Error processing SMS webhook', { error: error.message });
       throw error;
     }
@@ -122,7 +122,7 @@ export class WebhookHandler {
         sender: contribution.senderName
       });
 
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       await this.logMessage('ERROR', 'EMAIL_WEBHOOK', 'Error processing email webhook', { error: error.message });
       throw error;
     }
@@ -177,7 +177,7 @@ export class WebhookHandler {
               config.phoneNumberId
             );
           }
-        } catch (error) {
+        } catch (error: unknown) { const err = error as Error;
           await this.logMessage('WARNING', 'WHATSAPP_WEBHOOK', 'Failed to send confirmation message', { error: error.message });
         }
       }
@@ -195,7 +195,7 @@ export class WebhookHandler {
         platform: contribution.platform
       });
 
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       await this.logMessage('ERROR', 'WHATSAPP_WEBHOOK', 'Error processing WhatsApp webhook', { error: error.message });
       throw error;
     }

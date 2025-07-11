@@ -44,7 +44,7 @@ export class GoogleSheetsService {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       console.error('Error appending to Google Sheets:', error);
       return false;
     }
@@ -77,7 +77,7 @@ export class GoogleSheetsService {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       console.error('Error batch appending to Google Sheets:', error);
       return false;
     }

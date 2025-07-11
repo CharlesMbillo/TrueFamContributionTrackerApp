@@ -66,7 +66,7 @@ export class EmailParser {
             platform: platform.charAt(0).toUpperCase() + platform.slice(1),
             rawMessage: `Subject: ${subject}\n\nBody: ${body}`
           };
-        } catch (error) {
+        } catch (error: unknown) { const err = error as Error;
           console.error(`Error parsing ${platform} email:`, error);
           return null;
         }

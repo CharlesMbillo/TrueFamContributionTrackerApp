@@ -60,7 +60,7 @@ export class DatabaseStorage implements IStorage {
           isActive: true
         });
       }
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       console.error("Error initializing default campaign:", error);
     }
   }

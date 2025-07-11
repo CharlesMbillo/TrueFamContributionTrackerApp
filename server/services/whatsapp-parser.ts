@@ -251,7 +251,7 @@ export class WhatsAppParser {
       }
       
       return null;
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       console.error('Error extracting WhatsApp message:', error);
       return null;
     }
@@ -279,7 +279,7 @@ export class WhatsAppParser {
       });
 
       return response.ok;
-    } catch (error) {
+    } catch (error: unknown) { const err = error as Error;
       console.error('Error sending WhatsApp confirmation:', error);
       return false;
     }
