@@ -12,10 +12,11 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: path.resolve(__dirname, '../dist/public'),
+    outDir: path.resolve(__dirname, '../dist'),
     manifest: true,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/main.tsx')
     }
-  }
+  },
+  base: '/' // Explicit base path
 });

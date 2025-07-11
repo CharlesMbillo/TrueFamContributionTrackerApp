@@ -11,8 +11,6 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     const connect = () => {
       try {
