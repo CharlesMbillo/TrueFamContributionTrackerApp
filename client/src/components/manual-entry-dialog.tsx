@@ -1,3 +1,4 @@
+import { Campaign } from '../types/campaign';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';

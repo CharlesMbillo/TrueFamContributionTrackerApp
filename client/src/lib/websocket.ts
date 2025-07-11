@@ -1,3 +1,4 @@
+const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://default-url";
 import { useRef, useEffect, useState } from 'react';
 
 export interface WebSocketMessage {
