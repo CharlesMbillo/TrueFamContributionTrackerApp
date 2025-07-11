@@ -1,6 +1,45 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import fs from 'fs';
+
+// Simple logging function
+function log(message: string) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Custom static serving function
+function serveStaticFiles(app: express.Express) {
+  const distPath = resolve(__dirname, '../dist/public');
+  
+  // Production: Serve built assets
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      // Only serve index.html for non-API routes
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(resolve(distPath, 'index.html'));
+      } else {
+        res.status(404).end();
+      }
+    });
+    return;
+  }
+
+  // Development: Let Vite handle frontend, show message for non-API routes
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.status(404).send('Development server: Start frontend with "npm run dev" or build with "npm run build"');
+    } else {
+      res.status(404).end();
+    }
+  });
+}
 
 const app = express();
 app.use(express.json());
@@ -51,9 +90,11 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // For development, we'll use static serving for now
+    // The actual Vite dev server setup is handled separately
+    serveStaticFiles(app);
   } else {
-    serveStatic(app);
+    serveStaticFiles(app);
   }
 
   // ALWAYS serve the app on port 5000
