@@ -12,127 +12,159 @@ export interface ParsedWhatsAppMessage {
 
 export class WhatsAppParser {
   private static patterns = {
-    // M-Pesa patterns for WhatsApp notifications
+    // M-Pesa patterns - comprehensive coverage
     mpesa: {
-      confirmation: /(?:received|confirmed)\s+KES?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+on|\s+\w+|\.|$)/i,
-      memberExtract: /(?:member|ref|id|account)[\s:]*([A-Z0-9]{6,})/i,
+      confirmation: [
+        /(?:received|confirmed|got)\s+KES?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+on|\s+\w+|\.|$)/i,
+        /KES?\s?([\d,]+\.?\d*)\s+(?:received|confirmed|from)\s+(.+?)(?:\s+via\s+M-?Pesa|\s+\w+|\.|$)/i,
+        /M-?Pesa.*?KES?\s?([\d,]+\.?\d*).+?(?:from|by)\s+(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      memberExtract: /(?:member|ref|id|account|code)[\s:]*([A-Z0-9]{3,})/i,
       phoneExtract: /(\+?254\d{9}|\d{10})/
     },
     
-    // Airtel Money patterns
+    // Airtel Money patterns - enhanced
     airtel: {
-      confirmation: /(?:received|got)\s+KES?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+via|\s+on|\.|$)/i,
-      memberExtract: /(?:ref|reference|id)[\s:]*([A-Z0-9]{6,})/i
+      confirmation: [
+        /(?:received|got|confirmed)\s+KES?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+via|\s+on|\.|$)/i,
+        /Airtel\s*Money.*?KES?\s?([\d,]+\.?\d*).+?(?:from|by)\s+(.+?)(?:\s+|\.|\n|$)/i,
+        /KES?\s?([\d,]+\.?\d*)\s+(?:received|from).*?Airtel.*?(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      memberExtract: /(?:ref|reference|id|account|member)[\s:]*([A-Z0-9]{3,})/i
     },
     
-    // General payment patterns for WhatsApp Pay
-    whatsappPay: {
-      confirmation: /(?:payment|received|sent)\s+(?:of\s+)?(?:KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|to)\s+(.+?)(?:\s+|$)/i,
-      memberExtract: /(?:id|ref|member|account)[\s:]*([A-Z0-9]{4,})/i
+    // Bank transfers and mobile money
+    banking: {
+      confirmation: [
+        /(?:received|transferred|sent)\s+(?:KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|to)\s+(.+?)(?:\s+via|\s+bank|\.|$)/i,
+        /Bank\s+transfer.*?(?:KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|by)\s+(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      memberExtract: /(?:ref|reference|account|member|id)[\s:]*([A-Z0-9]{3,})/i
+    },
+    
+    // International payment patterns - improved
+    international: {
+      zelle: [
+        /(?:Zelle|payment).*?(?:received|got)\s+(?:\$|USD)?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+via|\s+Member|\.|$)/i,
+        /\$?([\d,]+\.?\d*)\s+(?:received|from).*?Zelle.*?(.+?)(?:\s+Member|\s+ID|\.|$)/i
+      ],
+      venmo: [
+        /Venmo.+?(?:received|got)\s+\$?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+|$)/i,
+        /\$?([\d,]+\.?\d*)\s+(?:received|from).*?Venmo.*?(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      cashapp: [
+        /Cash\s*App.+?(?:received|got)\s+\$?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+|$)/i,
+        /\$?([\d,]+\.?\d*)\s+(?:received|from).*?Cash\s*App.*?(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      paypal: [
+        /PayPal.+?(?:received|got)\s+(?:\$|USD|EUR)?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+|$)/i,
+        /(?:\$|USD|EUR)?\s?([\d,]+\.?\d*)\s+(?:received|from).*?PayPal.*?(.+?)(?:\s+|\.|\n|$)/i
+      ]
     },
 
-    // International payment patterns  
-    international: {
-      zelle: /(?:Zelle|payment).*?(?:received|got)\s+(?:\$|USD)?\s?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+via|\s+Member|\.|$)/i,
-      venmo: /Venmo.+?(?:received|got)\s+\$?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+|$)/i,
-      cashapp: /Cash\s*App.+?(?:received|got)\s+\$?([\d,]+\.?\d*).+?from\s+(.+?)(?:\s+|$)/i
+    // WhatsApp Pay specific patterns
+    whatsappPay: {
+      confirmation: [
+        /(?:payment|received|sent)\s+(?:of\s+)?(?:KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|to)\s+(.+?)(?:\s+|$)/i,
+        /WhatsApp\s*Pay.*?(?:KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|by)\s+(.+?)(?:\s+|\.|\n|$)/i
+      ],
+      memberExtract: /(?:id|ref|member|account|code)[\s:]*([A-Z0-9]{3,})/i
     }
   };
 
   static parseWhatsAppMessage(messageBody: string, senderPhone?: string): ParsedWhatsAppMessage | null {
     const cleanMessage = messageBody.trim();
     
-    // Try M-Pesa pattern first
-    let match = cleanMessage.match(this.patterns.mpesa.confirmation);
-    if (match) {
-      const amount = parseFloat(match[1].replace(/,/g, ''));
-      const senderName = this.cleanSenderName(match[2]);
-      const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
-      
-      return {
-        senderName,
-        amount,
-        memberId,
-        date: new Date(),
-        platform: 'M-Pesa',
-        rawMessage: cleanMessage,
-        phoneNumber: senderPhone
-      };
-    }
+    // Helper function to try multiple patterns
+    const tryPatterns = (patterns: RegExp[], platformName: string) => {
+      for (const pattern of patterns) {
+        const match = cleanMessage.match(pattern);
+        if (match) {
+          const amount = parseFloat(match[1].replace(/,/g, ''));
+          const senderName = this.cleanSenderName(match[2]);
+          const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
+          
+          return {
+            senderName,
+            amount,
+            memberId,
+            date: new Date(),
+            platform: platformName,
+            rawMessage: cleanMessage,
+            phoneNumber: senderPhone
+          };
+        }
+      }
+      return null;
+    };
 
-    // Try Airtel Money pattern
-    match = cleanMessage.match(this.patterns.airtel.confirmation);
-    if (match) {
-      const amount = parseFloat(match[1].replace(/,/g, ''));
-      const senderName = this.cleanSenderName(match[2]);
-      const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
-      
-      return {
-        senderName,
-        amount,
-        memberId,
-        date: new Date(),
-        platform: 'Airtel Money',
-        rawMessage: cleanMessage,
-        phoneNumber: senderPhone
-      };
-    }
+    // Try M-Pesa patterns first
+    let result = tryPatterns(this.patterns.mpesa.confirmation, 'M-Pesa');
+    if (result) return result;
 
-    // Try WhatsApp Pay pattern
-    match = cleanMessage.match(this.patterns.whatsappPay.confirmation);
-    if (match) {
-      const amount = parseFloat(match[1].replace(/,/g, ''));
-      const senderName = this.cleanSenderName(match[2]);
-      const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
-      
-      return {
-        senderName,
-        amount,
-        memberId,
-        date: new Date(),
-        platform: 'WhatsApp Pay',
-        rawMessage: cleanMessage,
-        phoneNumber: senderPhone
-      };
-    }
+    // Try Airtel Money patterns
+    result = tryPatterns(this.patterns.airtel.confirmation, 'Airtel Money');
+    if (result) return result;
+
+    // Try banking patterns
+    result = tryPatterns(this.patterns.banking.confirmation, 'Bank Transfer');
+    if (result) return result;
+
+    // Try WhatsApp Pay patterns
+    result = tryPatterns(this.patterns.whatsappPay.confirmation, 'WhatsApp Pay');
+    if (result) return result;
 
     // Try international payment patterns
-    for (const [platform, pattern] of Object.entries(this.patterns.international)) {
-      match = cleanMessage.match(pattern);
-      if (match) {
-        const amount = parseFloat(match[1].replace(/,/g, ''));
-        const senderName = this.cleanSenderName(match[2]);
-        const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
-        
-        return {
-          senderName,
-          amount,
-          memberId,
-          date: new Date(),
-          platform: platform.charAt(0).toUpperCase() + platform.slice(1),
-          rawMessage: cleanMessage,
-          phoneNumber: senderPhone
-        };
-      }
+    for (const [platform, patterns] of Object.entries(this.patterns.international)) {
+      const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+      result = tryPatterns(patterns, platformName);
+      if (result) return result;
     }
 
-    // Try generic payment pattern as fallback
-    const genericPattern = /(?:payment|received|got|sent).*?(?:\$|KES|USD|EUR)?\s?([\d,]+\.?\d*).+?(?:from|to)\s+(.+?)(?:\s+|Member:|ID:|$)/i;
-    match = cleanMessage.match(genericPattern);
-    if (match) {
-      const amount = parseFloat(match[1].replace(/,/g, ''));
-      const senderName = this.cleanSenderName(match[2]);
-      const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
-      
-      return {
-        senderName,
-        amount,
-        memberId,
-        date: new Date(),
-        platform: 'WhatsApp Pay',
-        rawMessage: cleanMessage,
-        phoneNumber: senderPhone
-      };
+    // Enhanced fallback patterns
+    const fallbackPatterns = [
+      // Currency first patterns
+      /(?:KES|USD|EUR|\$)\s?([\d,]+\.?\d*).+?(?:from|by|sent by)\s+(.+?)(?:\s+via|\s+Member|\s+ID|\.|$)/i,
+      // Amount first patterns
+      /([\d,]+\.?\d*)\s+(?:KES|USD|EUR|\$).+?(?:from|by|sent by)\s+(.+?)(?:\s+via|\s+Member|\s+ID|\.|$)/i,
+      // Person name first with "sent" patterns
+      /(.+?)\s+(?:sent|paid|transferred)\s+(?:KES|USD|EUR|\$)?\s?([\d,]+\.?\d*)/i,
+      // "received from" patterns  
+      /(?:KES|USD|EUR|\$)?\s?([\d,]+\.?\d*)\s+(?:received|got)\s+from\s+(.+?)(?:\s+via|\s+Member|\s+ID|\.|$)/i,
+      // Bank transfer specific patterns
+      /(?:bank\s+transfer|transfer).*?(?:KES|USD|EUR|\$)?\s?([\d,]+\.?\d*).+?(?:from|by)\s+(.+?)(?:\s+|Account:|ID:|\.|\n|$)/i,
+      // Generic payment patterns
+      /(?:payment|received|got|sent|transfer).*?([\d,]+\.?\d*).+?(?:from|to|by)\s+(.+?)(?:\s+|Member:|ID:|\.|\n|$)/i
+    ];
+
+    for (const pattern of fallbackPatterns) {
+      const match = cleanMessage.match(pattern);
+      if (match) {
+        let amount, senderName;
+        
+        // Check if first group is amount or name
+        if (/^\d/.test(match[1])) {
+          amount = parseFloat(match[1].replace(/,/g, ''));
+          senderName = this.cleanSenderName(match[2]);
+        } else {
+          senderName = this.cleanSenderName(match[1]);
+          amount = parseFloat(match[2].replace(/,/g, ''));
+        }
+        
+        if (amount > 0) {
+          const memberId = this.extractMemberId(cleanMessage) || senderPhone || 'Unknown';
+          
+          return {
+            senderName,
+            amount,
+            memberId,
+            date: new Date(),
+            platform: 'Mobile Payment',
+            rawMessage: cleanMessage,
+            phoneNumber: senderPhone
+          };
+        }
+      }
     }
 
     return null;
@@ -149,17 +181,30 @@ export class WhatsAppParser {
   }
 
   private static extractMemberId(message: string): string | null {
-    // Try different member ID patterns
+    // Enhanced member ID extraction patterns
     const patterns = [
-      this.patterns.mpesa.memberExtract,
-      this.patterns.airtel.memberExtract,
-      this.patterns.whatsappPay.memberExtract
+      // Specific prefixes
+      /(?:member|ref|id|account|code|transaction)[\s:]*([A-Z0-9]{3,})/i,
+      // Common formats
+      /TF[A-Z0-9]{3,}/i,
+      /REF[\s:]?([A-Z0-9]{3,})/i,
+      /ID[\s:]?([A-Z0-9]{3,})/i,
+      /MEMBER[\s:]?([A-Z0-9]{3,})/i,
+      /ACCOUNT[\s:]?([A-Z0-9]{3,})/i,
+      // M-Pesa specific
+      /[A-Z]{2,3}\d{6,}/i,
+      // Generic alphanumeric codes
+      /\b[A-Z]{2}\d{3,}\b/i,
+      /\b[A-Z]{3}\d{2,}\b/i,
+      // Phone number as member ID
+      /254\d{9}/,
+      /\+254\d{9}/
     ];
 
     for (const pattern of patterns) {
       const match = message.match(pattern);
       if (match) {
-        return match[1];
+        return match[1] || match[0];
       }
     }
 

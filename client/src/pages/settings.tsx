@@ -24,8 +24,16 @@ const sheetsSchema = z.object({
   sheetUrl: z.string().url('Please enter a valid Google Sheets URL'),
 });
 
+const whatsappSchema = z.object({
+  accessToken: z.string().min(1, 'Access Token is required'),
+  verifyToken: z.string().min(1, 'Verify Token is required'), 
+  phoneNumberId: z.string().min(1, 'Phone Number ID is required'),
+  businessAccountId: z.string().optional(),
+});
+
 type CampaignFormData = z.infer<typeof campaignSchema>;
 type SheetsFormData = z.infer<typeof sheetsSchema>;
+type WhatsAppFormData = z.infer<typeof whatsappSchema>;
 
 export default function Settings() {
   const [, setLocation] = useLocation();
@@ -50,6 +58,16 @@ export default function Settings() {
     resolver: zodResolver(sheetsSchema),
     defaultValues: {
       sheetUrl: '',
+    },
+  });
+
+  const whatsappForm = useForm<WhatsAppFormData>({
+    resolver: zodResolver(whatsappSchema),
+    defaultValues: {
+      accessToken: '',
+      verifyToken: '',
+      phoneNumberId: '',
+      businessAccountId: '',
     },
   });
 
@@ -96,12 +114,43 @@ export default function Settings() {
     },
   });
 
+  const updateWhatsApp = useMutation({
+    mutationFn: async (data: WhatsAppFormData) => {
+      const config = {
+        ...data,
+        webhookUrl: '/api/webhooks/whatsapp'
+      };
+      return apiRequest('PUT', '/api/api-configs/4', {
+        config: JSON.stringify(config),
+        isActive: true
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'WhatsApp API configured successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/api-configs'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onCampaignSubmit = (data: CampaignFormData) => {
     updateCampaign.mutate(data);
   };
 
   const onSheetsSubmit = (data: SheetsFormData) => {
     syncSheets.mutate(data);
+  };
+
+  const onWhatsAppSubmit = (data: WhatsAppFormData) => {
+    updateWhatsApp.mutate(data);
   };
 
   return (
@@ -251,6 +300,84 @@ export default function Settings() {
                   </div>
                   <Switch />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>WhatsApp Business API Configuration</CardTitle>
+                <CardDescription>
+                  Set up WhatsApp Business API for receiving payment notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={whatsappForm.handleSubmit(onWhatsAppSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="accessToken">Access Token</Label>
+                    <Input
+                      id="accessToken"
+                      type="password"
+                      placeholder="WhatsApp Business API Access Token"
+                      {...whatsappForm.register('accessToken')}
+                    />
+                    {whatsappForm.formState.errors.accessToken && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {whatsappForm.formState.errors.accessToken.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="verifyToken">Verify Token</Label>
+                    <Input
+                      id="verifyToken"
+                      placeholder="Webhook verification token"
+                      {...whatsappForm.register('verifyToken')}
+                    />
+                    {whatsappForm.formState.errors.verifyToken && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {whatsappForm.formState.errors.verifyToken.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phoneNumberId">Phone Number ID</Label>
+                    <Input
+                      id="phoneNumberId"
+                      placeholder="WhatsApp Business Phone Number ID"
+                      {...whatsappForm.register('phoneNumberId')}
+                    />
+                    {whatsappForm.formState.errors.phoneNumberId && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {whatsappForm.formState.errors.phoneNumberId.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="businessAccountId">Business Account ID (Optional)</Label>
+                    <Input
+                      id="businessAccountId"
+                      placeholder="WhatsApp Business Account ID"
+                      {...whatsappForm.register('businessAccountId')}
+                    />
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Webhook URL</h4>
+                    <p className="text-sm text-blue-700 font-mono bg-blue-100 p-2 rounded">
+                      {window.location.origin}/api/webhooks/whatsapp
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Use this URL in your WhatsApp Business API webhook configuration
+                    </p>
+                  </div>
+
+                  <Button type="submit" disabled={updateWhatsApp.isPending}>
+                    {updateWhatsApp.isPending ? 'Configuring...' : 'Save WhatsApp Configuration'}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
