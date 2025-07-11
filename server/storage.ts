@@ -40,144 +40,125 @@ export interface IStorage {
   createSystemLog(log: InsertSystemLog): Promise<SystemLog>;
 }
 
-export class MemStorage implements IStorage {
-  private campaigns: Map<number, Campaign> = new Map();
-  private contributions: Map<number, Contribution> = new Map();
-  private apiConfigs: Map<number, ApiConfig> = new Map();
-  private systemLogs: Map<number, SystemLog> = new Map();
-  private currentId = 1;
+import { db } from "./db";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 
+export class DatabaseStorage implements IStorage {
   constructor() {
-    // Initialize with default campaign
-    this.createCampaign({
-      name: "Family Fundraiser - March 2024",
-      startDate: new Date("2024-03-01"),
-      endDate: new Date("2024-03-31"),
-      isActive: true
-    });
+    // Initialize with default campaign if none exists
+    this.initializeDefaultCampaign();
+  }
+
+  private async initializeDefaultCampaign() {
+    try {
+      const existingCampaigns = await db.select().from(campaigns);
+      if (existingCampaigns.length === 0) {
+        await this.createCampaign({
+          name: "Family Fundraiser - March 2024",
+          startDate: new Date("2024-03-01"),
+          endDate: new Date("2024-03-31"),
+          isActive: true
+        });
+      }
+    } catch (error) {
+      console.error("Error initializing default campaign:", error);
+    }
   }
 
   // Campaigns
   async getCampaigns(): Promise<Campaign[]> {
-    return Array.from(this.campaigns.values());
+    return await db.select().from(campaigns);
   }
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
-    return this.campaigns.get(id);
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign || undefined;
   }
 
   async getActiveCampaign(): Promise<Campaign | undefined> {
-    return Array.from(this.campaigns.values()).find(c => c.isActive);
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.isActive, true));
+    return campaign || undefined;
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const id = this.currentId++;
-    const newCampaign: Campaign = {
-      ...campaign,
-      id,
-      createdAt: new Date()
-    };
-    this.campaigns.set(id, newCampaign);
+    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
     return newCampaign;
   }
 
   async updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign> {
-    const existing = this.campaigns.get(id);
-    if (!existing) throw new Error("Campaign not found");
-    
-    const updated = { ...existing, ...campaign };
-    this.campaigns.set(id, updated);
+    const [updated] = await db.update(campaigns).set(campaign).where(eq(campaigns.id, id)).returning();
+    if (!updated) throw new Error("Campaign not found");
     return updated;
   }
 
   // Contributions
   async getContributions(campaignId?: number): Promise<Contribution[]> {
-    const contributions = Array.from(this.contributions.values());
-    return campaignId 
-      ? contributions.filter(c => c.campaignId === campaignId)
-      : contributions;
+    if (campaignId) {
+      return await db.select().from(contributions).where(eq(contributions.campaignId, campaignId));
+    }
+    return await db.select().from(contributions);
   }
 
   async getContribution(id: number): Promise<Contribution | undefined> {
-    return this.contributions.get(id);
+    const [contribution] = await db.select().from(contributions).where(eq(contributions.id, id));
+    return contribution || undefined;
   }
 
   async createContribution(contribution: InsertContribution): Promise<Contribution> {
-    const id = this.currentId++;
-    const newContribution: Contribution = {
-      ...contribution,
-      id,
-      createdAt: new Date()
-    };
-    this.contributions.set(id, newContribution);
+    const [newContribution] = await db.insert(contributions).values(contribution).returning();
     return newContribution;
   }
 
   async updateContribution(id: number, contribution: Partial<InsertContribution>): Promise<Contribution> {
-    const existing = this.contributions.get(id);
-    if (!existing) throw new Error("Contribution not found");
-    
-    const updated = { ...existing, ...contribution };
-    this.contributions.set(id, updated);
+    const [updated] = await db.update(contributions).set(contribution).where(eq(contributions.id, id)).returning();
+    if (!updated) throw new Error("Contribution not found");
     return updated;
   }
 
   async getContributionsByDateRange(startDate: Date, endDate: Date): Promise<Contribution[]> {
-    return Array.from(this.contributions.values()).filter(c => 
-      c.date >= startDate && c.date <= endDate
+    return await db.select().from(contributions).where(
+      and(
+        gte(contributions.date, startDate),
+        lte(contributions.date, endDate)
+      )
     );
   }
 
   // API Configs
   async getApiConfigs(): Promise<ApiConfig[]> {
-    return Array.from(this.apiConfigs.values());
+    return await db.select().from(apiConfigs);
   }
 
   async getApiConfig(id: number): Promise<ApiConfig | undefined> {
-    return this.apiConfigs.get(id);
+    const [config] = await db.select().from(apiConfigs).where(eq(apiConfigs.id, id));
+    return config || undefined;
   }
 
   async getApiConfigByType(type: string): Promise<ApiConfig | undefined> {
-    return Array.from(this.apiConfigs.values()).find(c => c.type === type);
+    const [config] = await db.select().from(apiConfigs).where(eq(apiConfigs.type, type));
+    return config || undefined;
   }
 
   async createApiConfig(config: InsertApiConfig): Promise<ApiConfig> {
-    const id = this.currentId++;
-    const newConfig: ApiConfig = {
-      ...config,
-      id,
-      createdAt: new Date()
-    };
-    this.apiConfigs.set(id, newConfig);
+    const [newConfig] = await db.insert(apiConfigs).values(config).returning();
     return newConfig;
   }
 
   async updateApiConfig(id: number, config: Partial<InsertApiConfig>): Promise<ApiConfig> {
-    const existing = this.apiConfigs.get(id);
-    if (!existing) throw new Error("API Config not found");
-    
-    const updated = { ...existing, ...config };
-    this.apiConfigs.set(id, updated);
+    const [updated] = await db.update(apiConfigs).set(config).where(eq(apiConfigs.id, id)).returning();
+    if (!updated) throw new Error("API Config not found");
     return updated;
   }
 
   // System Logs
   async getSystemLogs(limit = 100): Promise<SystemLog[]> {
-    const logs = Array.from(this.systemLogs.values())
-      .sort((a, b) => b.timestamp!.getTime() - a.timestamp!.getTime());
-    return logs.slice(0, limit);
+    return await db.select().from(systemLogs).orderBy(desc(systemLogs.timestamp)).limit(limit);
   }
 
   async createSystemLog(log: InsertSystemLog): Promise<SystemLog> {
-    const id = this.currentId++;
-    const newLog: SystemLog = {
-      ...log,
-      id,
-      timestamp: new Date()
-    };
-    this.systemLogs.set(id, newLog);
+    const [newLog] = await db.insert(systemLogs).values(log).returning();
     return newLog;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
