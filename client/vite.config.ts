@@ -15,9 +15,6 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../dist'),
     manifest: true,
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'src/main.tsx')
-      },
       output: {
         entryFileNames: 'static/js/[name].[hash].js',
         chunkFileNames: 'static/js/[name].[hash].js',
@@ -25,5 +22,5 @@ export default defineConfig({
       }
     }
   },
-  base: './' // Relative paths for production
+  base: './'
 });

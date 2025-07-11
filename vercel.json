@@ -2,34 +2,34 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/index.ts",
+      "src": "server/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/index.ts"
+      "dest": "server/index.js"
     },
     {
       "src": "/static/(.*)",
-      "dest": "client/dist/static/"
+      "dest": "client/dist/static/$1"
     },
     {
       "src": "/assets/(.*)",
-      "dest": "client/dist/assets/"
+      "dest": "client/dist/assets/$1"
     },
     {
       "src": "/@vite/(.*)",
-      "dest": "client/dist/@vite/"
+      "status": 404
     },
     {
       "src": "/",
       "dest": "client/dist/index.html"
     },
     {
-      "src": "/(.*)\.(js|css|png|jpg|svg|ico)",
-      "dest": "client/dist/."
+      "src": "/(.*)\\.(js|css|png|jpg|svg|ico|webp|woff2)",
+      "dest": "client/dist/$1.$2"
     },
     {
       "src": "/(.*)",
